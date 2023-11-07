@@ -199,12 +199,12 @@ int main(void)
       &encoder_config,
       main_encoder_CPR,
       false,
-      ENC2_5_GPIO_Port,
-      ENC2_4_GPIO_Port,
       ENC2_3_GPIO_Port,
-      ENC2_5_Pin,
+      ENC2_4_GPIO_Port,
+      ENC2_5_GPIO_Port,
+      ENC2_3_Pin,
       ENC2_4_Pin,
-      ENC2_3_Pin
+      ENC2_5_Pin
   );
   calc_encoder_step(&encoder_config);
   drive.pulses_per_pair = (uint16_t)((float)main_encoder_CPR / (float)drive.ppairs);
