@@ -79,7 +79,7 @@ DriverControl controller = {
     .stall_timeout = 3,
     .stall_tolerance = 0.2,
     // Targets
-    .velocity_target = 1.0,
+    .velocity_target = 3.14,
     .current_limit = MAX_CURRENT,
     .user_current_limit = MAX_CURRENT,
     // Regulation
@@ -90,9 +90,9 @@ DriverControl controller = {
     // Timer period
     .T = 0.0001,
     .velocity_regulator =
-            {.p_gain = 0.8, .i_gain = 0.3, .d_gain = 0.0, .integral_error_lim = 0.5, .tolerance = 0.02},
+            {.p_gain = 0.5, .i_gain = 0.1, .d_gain = 0.0, .integral_error_lim = 0.2, .tolerance = 0.02},
     .current_regulator = {
-            .p_gain = 1.0,
+            .p_gain = 0.5,
             .i_gain = 0.0,
             .d_gain = 0.0,
             .integral_error_lim = 0.0,
@@ -194,6 +194,7 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM7_Init();
   MX_SPI3_Init();
+  MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
   make_incr_encoder_reserved(
       &encoder_config,
