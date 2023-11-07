@@ -207,7 +207,6 @@ int main(void)
       ENC2_4_Pin,
       ENC2_5_Pin
   );
-  calc_encoder_step(&encoder_config);
   drive.pulses_per_pair = (uint16_t)((float)main_encoder_CPR / (float)drive.ppairs);
   stop_motor();
 
@@ -295,7 +294,7 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == ENC2_3_Pin || GPIO_Pin == ENC2_4_Pin || GPIO_Pin == ENC2_5_Pin) {
-        handle_encoder_channel(&encoder_config, GPIO_Pin);
+        CRITICAL_SECTION(handle_encoder_channel(&encoder_config, GPIO_Pin);)
     }
 }
 
