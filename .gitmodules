@@ -1,0 +1,3 @@
+[submodule "Drivers/libvoltbro"]
+	path = Drivers/libvoltbro
+	url = git@github.com:VBCores/libvoltbro.git
