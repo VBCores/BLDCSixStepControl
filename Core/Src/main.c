@@ -74,7 +74,7 @@ DriverControl controller = {
     // Control params
     .predict_change = false,
     .detect_stall = true,
-    .mode = SIX_STEP_CONTROL,
+    .mode = HALL_SIX_STEP_CONTROL,
     .encoder_filtering = 1.0f,
     .speed_filtering = 1.0f,
     .sampling_interval = 0.05f,
@@ -88,7 +88,7 @@ DriverControl controller = {
     // Regulation
     .speed_mult = 1.0f,
     .electric_mult = 1.0f,
-    .PWM_mult = 400.0f,
+    .PWM_mult = 40.0f,
     .max_PWM_per_s = 2000,
     // Timer period
     .T = 0.0001,
@@ -327,15 +327,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim) {
         return;
 
     GEncoder* generic_encoder = (GEncoder*)(&encoder_config);
-    motor_control(
-        &controller,
-        &drive,
-        &inverter,
-        ADC1_buf,
-        generic_encoder,
-        generic_encoder,
-        &htim1
-    );
+    CRITICAL_SECTION({
+        motor_control(
+            &controller,
+            &drive,
+            &inverter,
+            ADC1_buf,
+            generic_encoder,
+            generic_encoder,
+            &htim1
+        );
+    });
 }
 
 /* USER CODE END 4 */
