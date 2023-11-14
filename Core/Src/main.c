@@ -76,7 +76,7 @@ DriverControl controller = {
     .detect_stall = true,
     .mode = HALL_SIX_STEP_CONTROL,
     .encoder_filtering = 1.0f,
-    .speed_filtering = 1.0f,
+    .speed_filtering = 0.5f,
     .sampling_interval = 0.05f,
     // Stalling detection
     .stall_timeout = 3,
@@ -199,6 +199,8 @@ int main(void)
   MX_SPI3_Init();
   MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
+  DWT_Init();
+
   make_incr_encoder_reserved(
       &encoder_config,
       main_encoder_CPR,
