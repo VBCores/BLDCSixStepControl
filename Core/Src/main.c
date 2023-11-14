@@ -53,7 +53,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-const uint16_t main_encoder_CPR = 12;
+const uint16_t main_encoder_CPR = 6;
 const float MAX_CURRENT = 22;
 const float STALL_CURRENT = 13;
 
@@ -61,11 +61,14 @@ DriveInfo drive = {
     .is_on = false,
     // Physical consts
     .gear_ratio = 1,
-    .ppairs = 7,
+    .ppairs = 15,
+    .supply_voltage = 31.4,  // V
     .torque_const = 0.24,  // Kt (calculated), Nm / A == V / (rad/s)
-    .speed_const = 4.14,   // Kv (measured), (rad/s) / V
+    .speed_const = 4.14,   // Kv (measured), (rad/s) / V, A / Nm
     .max_current = MAX_CURRENT,
-    .stall_current = STALL_CURRENT
+    .stall_current = STALL_CURRENT,
+    .full_pwm = 2000,
+    .L_PINS = {GPIO_PIN_13, GPIO_PIN_14, GPIO_PIN_15}
 };
 DriverControl controller = {
     // Control params
@@ -73,7 +76,7 @@ DriverControl controller = {
     .detect_stall = true,
     .mode = SIX_STEP_CONTROL,
     .encoder_filtering = 1.0f,
-    .speed_filtering = 0.3f,
+    .speed_filtering = 1.0f,
     .sampling_interval = 0.05f,
     // Stalling detection
     .stall_timeout = 3,
@@ -84,15 +87,15 @@ DriverControl controller = {
     .user_current_limit = MAX_CURRENT,
     // Regulation
     .speed_mult = 1.0f,
-    .I_mult = 0.5f,
+    .electric_mult = 1.0f,
     .PWM_mult = 400.0f,
     .max_PWM_per_s = 2000,
     // Timer period
     .T = 0.0001,
     .velocity_regulator =
-            {.p_gain = 0.5, .i_gain = 0.1, .d_gain = 0.0, .integral_error_lim = 0.2, .tolerance = 0.02},
-    .current_regulator = {
-            .p_gain = 0.5,
+            {.p_gain = 0.4, .i_gain = 0.1, .d_gain = 0.05, .integral_error_lim = 0.2, .tolerance = 0.02},
+    .electric_regulator = {
+            .p_gain = 1.0,
             .i_gain = 0.0,
             .d_gain = 0.0,
             .integral_error_lim = 0.0,
@@ -292,9 +295,30 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+uint64_t micros_64() {
+    return micros_k * 1000 + __HAL_TIM_GetCounter(&htim7);
+}
+
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    static float last_time = 0;
+
     if (GPIO_Pin == ENC2_3_Pin || GPIO_Pin == ENC2_4_Pin || GPIO_Pin == ENC2_5_Pin) {
-        CRITICAL_SECTION(handle_encoder_channel(&encoder_config, GPIO_Pin);)
+        float current_time = micros_64() / 1000000.0f;
+        bool has_changed = false;
+        CRITICAL_SECTION({
+            has_changed = handle_encoder_channel(&encoder_config, GPIO_Pin);
+        })
+        if (!has_changed) {
+            return;
+        }
+        hall_six_step_control_callback(
+            &encoder_config,
+            &controller,
+            &drive,
+            &inverter,
+            current_time - last_time
+        );
+        last_time = current_time;
     }
 }
 
