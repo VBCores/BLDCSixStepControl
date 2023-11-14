@@ -74,26 +74,26 @@ DriverControl controller = {
     // Control params
     .predict_change = false,
     .detect_stall = true,
-    .mode = SIX_STEP_CONTROL,
+    .mode = HALL_SIX_STEP_CONTROL,
     .encoder_filtering = 1.0f,
-    .speed_filtering = 1.0f,
+    .speed_filtering = 0.5f,
     .sampling_interval = 0.05f,
     // Stalling detection
     .stall_timeout = 3,
     .stall_tolerance = 0.2,
     // Targets
-    .velocity_target = 3.14,
+    .velocity_target = 6.28,
     .current_limit = MAX_CURRENT,
     .user_current_limit = MAX_CURRENT,
     // Regulation
     .speed_mult = 1.0f,
     .electric_mult = 1.0f,
-    .PWM_mult = 400.0f,
-    .max_PWM_per_s = 2000,
+    .PWM_mult = 1.0f,
+    .max_PWM_per_s = 1000,
     // Timer period
     .T = 0.0001,
     .velocity_regulator =
-            {.p_gain = 0.4, .i_gain = 0.1, .d_gain = 0.05, .integral_error_lim = 0.2, .tolerance = 0.02},
+            {.p_gain = 1.0, .i_gain = 0.3, .d_gain = 0.0, .integral_error_lim = 0.3, .tolerance = 0.02},
     .electric_regulator = {
             .p_gain = 1.0,
             .i_gain = 0.0,
@@ -199,6 +199,8 @@ int main(void)
   MX_SPI3_Init();
   MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
+  DWT_Init();
+
   make_incr_encoder_reserved(
       &encoder_config,
       main_encoder_CPR,
@@ -299,6 +301,7 @@ uint64_t micros_64() {
     return micros_k * 1000 + __HAL_TIM_GetCounter(&htim7);
 }
 
+const float debounce_threshold = 0.001;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     static float last_time = 0;
 
@@ -309,6 +312,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
             has_changed = handle_encoder_channel(&encoder_config, GPIO_Pin);
         })
         if (!has_changed) {
+            return;
+        }
+        float dt = current_time - last_time;
+        if (dt < debounce_threshold) {
+            last_time = current_time;
             return;
         }
         hall_six_step_control_callback(
