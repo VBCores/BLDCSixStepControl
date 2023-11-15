@@ -77,7 +77,7 @@ DriverControl controller = {
     .mode = HALL_SIX_STEP_CONTROL,
     .encoder_filtering = 1.0f,
     .speed_filtering = 0.5f,
-    .sampling_interval = 0.05f,
+    .sampling_interval = 0.01f,
     // Stalling detection
     .stall_timeout = 3,
     .stall_tolerance = 0.2,
@@ -88,12 +88,12 @@ DriverControl controller = {
     // Regulation
     .speed_mult = 1.0f,
     .electric_mult = 1.0f,
-    .PWM_mult = 40.0f,
-    .max_PWM_per_s = 2000,
+    .PWM_mult = 1.0f,
+    .max_PWM_per_s = 1500,
     // Timer period
-    .T = 0.0001,
+    .T = 0.00005,
     .velocity_regulator =
-            {.p_gain = 0.4, .i_gain = 0.1, .d_gain = 0.05, .integral_error_lim = 0.2, .tolerance = 0.02},
+            {.p_gain = 4.8, .i_gain = 0.5, .d_gain = -0.5, .integral_error_lim = 1.0, .tolerance = 0.02},
     .electric_regulator = {
             .p_gain = 1.0,
             .i_gain = 0.0,
@@ -197,10 +197,10 @@ int main(void)
   MX_TIM3_Init();
   MX_TIM7_Init();
   MX_SPI3_Init();
-  MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
   DWT_Init();
 
+  static EncoderStep sequence[6] = {CA, BA, BC, AC, AB, CB};
   make_incr_encoder_reserved(
       &encoder_config,
       main_encoder_CPR,
@@ -210,7 +210,8 @@ int main(void)
       ENC2_5_GPIO_Port,
       ENC2_3_Pin,
       ENC2_4_Pin,
-      ENC2_5_Pin
+      ENC2_5_Pin,
+      sequence
   );
   drive.pulses_per_pair = (uint16_t)((float)main_encoder_CPR / (float)drive.ppairs);
   stop_motor();
@@ -305,7 +306,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     static float last_time = 0;
 
     if (GPIO_Pin == ENC2_3_Pin || GPIO_Pin == ENC2_4_Pin || GPIO_Pin == ENC2_5_Pin) {
-        float current_time = micros_64() / 1000000.0f;
+        float current_time;
+        if (controller.mode == HALL_SIX_STEP_CONTROL) {
+            current_time = micros_64() / 1000000.0f;
+        }
         bool has_changed = false;
         CRITICAL_SECTION({
             has_changed = handle_encoder_channel(&encoder_config, GPIO_Pin);
@@ -313,13 +317,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
         if (!has_changed) {
             return;
         }
-        hall_six_step_control_callback(
-            &encoder_config,
-            &controller,
-            &drive,
-            &inverter,
-            current_time - last_time
-        );
+        if (controller.mode == HALL_SIX_STEP_CONTROL) {
+            encoder_config.newer_interrupt = true;
+            hall_six_step_control_callback(
+                &encoder_config,
+                &controller,
+                &drive,
+                &inverter,
+                current_time - last_time
+            );
+        }
         last_time = current_time;
     }
 }
